@@ -1,0 +1,7 @@
+python-telegram-bot[job-queue]>=21.0
+yt-dlp[default,curl-cffi]
+gallery-dl
+httpx
+Pillow
+pillow-heif
+python-dotenv

@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repost Bot</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%273%27 y=%276%27 width=%2716%27 height=%2720%27 rx=%273%27 fill=%27none%27 stroke=%27%232f5fe8%27 stroke-width=%273%27/%3E%3Crect x=%2219%27 y=%273%27 width=%2710%27 height=%2726%27 rx=%273%27 fill=%27%232f5fe8%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #edeee9;
+  --surface: #ffffff;
+  --ink: #23262b;
+  --ink-soft: #5d626b;
+  --line: #d5d7cf;
+  --accent: #2f5fe8;
+  --accent-ink: #ffffff;
+  --marker: #f2d61b;
+  --ok: #1d8a52;
+  --bad: #c43a2f;
+  --warn: #a86a00;
+  --radius-s: 6px;
+  --radius-l: 18px;
+  --font: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #17191d;
+    --surface: #212429;
+    --ink: #e8e9e4;
+    --ink-soft: #a3a7ae;
+    --line: #353941;
+    --accent: #7096ff;
+    --accent-ink: #0d1530;
+    --marker: #e3c814;
+    --ok: #4cc085;
+    --bad: #ff7a6e;
+    --warn: #e6a640;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 15px/1.5 var(--font);
+  font-optical-sizing: auto;
+}
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button, input, textarea { font: inherit; color: inherit; }
+
+/* ------------------------------------------------ topo */
+.top {
+  position: sticky; top: 0; z-index: 5;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.top-inner {
+  max-width: 1120px; margin: 0 auto; padding: 14px 20px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.brand { font-size: 22px; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+.state { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); flex: none; }
+.dot.paused { background: var(--warn); }
+.dot.off { background: var(--bad); }
+.top-meta { color: var(--ink-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
+.top-meta strong { color: var(--ink); font-weight: 600; }
+.spacer { flex: 1; }
+.saved { font-size: 13px; color: var(--ink-soft); min-width: 9ch; text-align: right; }
+
+/* ------------------------------------------------ botões */
+.btn {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  padding: 8px 14px; border-radius: 999px; font-weight: 600; cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-soft); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.quiet { background: transparent; }
+.btn[disabled] { opacity: .55; cursor: progress; }
+
+/* ------------------------------------------------ layout */
+main {
+  max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 48px;
+}
+.settings { display: flex; flex-direction: column; gap: 40px; min-width: 0; }
+.aside { position: sticky; top: 84px; align-self: start; }
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; gap: 36px; }
+  .aside { position: static; order: -1; }
+}
+
+.group h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 4px; }
+.group > p.lead { margin: 0 0 18px; color: var(--ink-soft); max-width: 62ch; }
+.field { margin: 0 0 18px; }
+.field:last-child { margin-bottom: 0; }
+.field label.title, .field .title { display: block; font-weight: 650; margin-bottom: 6px; }
+.hint { color: var(--ink-soft); font-size: 13.5px; margin: 6px 0 0; max-width: 62ch; }
+textarea, input[type=text], input[type=password], input[type=number] {
+  width: 100%; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-s); padding: 10px 12px;
+}
+textarea { resize: vertical; min-height: 92px; line-height: 1.45; }
+textarea:focus, input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.count { float: right; font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; font-weight: 400; }
+
+/* destino: o controle principal */
+.dest {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.dest input { position: absolute; opacity: 0; pointer-events: none; }
+.dest label {
+  display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  padding: 14px; border: 1.5px solid var(--line); border-radius: 12px;
+  background: var(--surface); cursor: pointer;
+}
+.dest label:hover { border-color: var(--ink-soft); }
+.dest input:checked + label { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.dest input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shape { display: flex; gap: 5px; align-items: flex-end; height: 34px; }
+.shape i { display: block; border: 1.5px solid currentColor; border-radius: 3px; }
+.shape .feed { width: 24px; height: 30px; }
+.shape .story { width: 19px; height: 34px; }
+.dest strong { font-weight: 650; }
+.dest small { color: var(--ink-soft); font-size: 13px; line-height: 1.35; }
+
+/* chave liga/desliga */
+.switch-row { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); }
+.switch-row:first-of-type { border-top: 0; padding-top: 0; }
+.switch-row .text { flex: 1; }
+.switch-row .text strong { display: block; font-weight: 650; }
+.switch-row .text span { color: var(--ink-soft); font-size: 13.5px; }
+.switch { position: relative; width: 44px; height: 26px; flex: none; margin-top: 2px; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: background .15s; }
+.switch span::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--surface); transition: transform .15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+.switch input:checked + span { background: var(--accent); }
+.switch input:checked + span::after { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.inline input[type=color] { width: 44px; height: 38px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--surface); }
+.inline input[type=number] { width: 90px; }
+
+/* conta */
+.account { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; }
+.avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: var(--line); flex: none; }
+.account .who { flex: 1; min-width: 160px; }
+.account .who strong { display: block; font-size: 17px; }
+.account .who span { color: var(--ink-soft); font-size: 13.5px; }
+.meter { height: 6px; background: var(--line); border-radius: 999px; margin-top: 8px; overflow: hidden; max-width: 220px; }
+.meter b { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.notice { padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent); margin-bottom: 14px; }
+.notice.bad { background: color-mix(in srgb, var(--bad) 12%, var(--surface)); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+details { margin-top: 4px; }
+details summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+details ol { padding-left: 20px; margin: 10px 0 0; color: var(--ink-soft); }
+details li { margin-bottom: 4px; }
+
+/* ------------------------------------------------ prévia (o elemento marcante) */
+.preview h2 { font-size: 15px; font-weight: 650; margin: 0 0 12px; color: var(--ink-soft); }
+.frames { display: flex; gap: 16px; align-items: flex-start; }
+.frame {
+  flex: 1; max-width: 300px; background: var(--surface);
+  border: 1.5px solid var(--ink); border-radius: var(--radius-l);
+  overflow: hidden; transition: flex .35s ease;
+}
+.frame .bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13px; font-weight: 650; }
+.frame .bar .mini { width: 22px; height: 22px; border-radius: 50%; background: var(--line); object-fit: cover; }
+.media {
+  position: relative; background: #000; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  transition: aspect-ratio .35s ease;
+}
+.media img { max-width: 100%; max-height: 100%; display: block; }
+.media .empty {
+  color: #fff; opacity: .7; font-size: 13px; text-align: center; padding: 16px;
+  font-weight: 500;
+}
+.feed-frame .media { aspect-ratio: 4 / 5; }
+.story-frame .media { aspect-ratio: 9 / 16; }
+.caption { padding: 10px 12px 14px; font-size: 13.5px; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+.caption b { font-weight: 650; }
+.caption .tag { color: var(--accent); }
+.caption .muted { color: var(--ink-soft); font-style: italic; }
+.story-frame .media::after {
+  content: ""; position: absolute; top: 8px; left: 10px; right: 10px; height: 2.5px;
+  background: rgba(255,255,255,.75); border-radius: 2px;
+}
+.frames.both .frame { flex: 1 1 0; }
+.preview .note { font-size: 13px; color: var(--ink-soft); margin: 10px 0 0; }
+.marker { background: linear-gradient(transparent 55%, color-mix(in srgb, var(--marker) 70%, transparent) 55%); padding: 0 2px; }
+.hidden { display: none !important; }
+@media (prefers-color-scheme: dark) { .marker { background: color-mix(in srgb, var(--marker) 22%, transparent); border-radius: 3px; } }
+@media (prefers-reduced-motion: reduce) { .frame, .media, .switch span, .switch span::after { transition: none; } }
+
+/* ------------------------------------------------ histórico */
+.history { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; }
+.history-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; border-top: 1px solid var(--line); padding-top: 28px; }
+.history-head h2 { font-size: 21px; margin: 0; font-weight: 700; }
+.history-head span { color: var(--ink-soft); font-size: 14px; }
+.wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.post { display: flex; flex-direction: column; gap: 6px; font-size: 13px; min-width: 0; }
+.post .pic { aspect-ratio: 4 / 5; background: var(--line); border-radius: 10px; overflow: hidden; position: relative; }
+.post .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post.fail .pic { outline: 2px solid var(--bad); outline-offset: -2px; }
+.post .pic .badge { position: absolute; left: 6px; bottom: 6px; background: rgba(0,0,0,.72); color: #fff; padding: 2px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.post .where { font-weight: 650; }
+.post .when { color: var(--ink-soft); }
+.post .err { color: var(--bad); font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.empty-wall { color: var(--ink-soft); padding: 26px 0; }
+
+/* ------------------------------------------------ aviso flutuante */
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 999px;
+  font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none; transition: .2s; z-index: 20;
+  max-width: calc(100vw - 32px);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.bad { background: var(--bad); color: #fff; }
+@media (max-width: 560px) {
+  .dest { grid-template-columns: 1fr; }
+  .dest label { flex-direction: row; align-items: center; }
+  .top-meta { width: 100%; order: 3; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <h1 class="brand">Repost Bot</h1>
+    <div class="state" id="state"><span class="dot" id="state-dot"></span><span id="state-text">Conectando…</span></div>
+    <div class="top-meta" id="top-meta"></div>
+    <div class="spacer"></div>
+    <span class="saved" id="saved" aria-live="polite"></span>
+    <button class="btn" id="pause-btn" type="button">Pausar</button>
+  </div>
+</header>
+
+<div id="offline" class="hidden" style="max-width:1120px;margin:16px auto 0;padding:0 20px">
+  <div class="notice bad">O bot não está respondendo. Confira se a janela do <b>iniciar.bat</b> está aberta.</div>
+</div>
+
+<main>
+  <div class="settings">
+
+    <!-- destino -->
+    <section class="group" aria-labelledby="h-dest">
+      <h2 id="h-dest">Onde publicar</h2>
+      <p class="lead">Vale para todo link que você mandar. Para mudar só um envio, escreva <b>#post</b>, <b>#story</b> ou <b>#ambos</b> junto com o link.</p>
+      <div class="dest" role="radiogroup" aria-labelledby="h-dest">
+        <input type="radio" name="destination" id="d-feed" value="feed">
+        <label for="d-feed"><span class="shape"><i class="feed"></i></span><span><strong>Post</strong><br><small>Foto, reel ou carrossel no perfil</small></span></label>
+        <input type="radio" name="destination" id="d-story" value="story">
+        <label for="d-story"><span class="shape"><i class="story"></i></span><span><strong>Story</strong><br><small>Some em 24h, sem legenda</small></span></label>
+        <input type="radio" name="destination" id="d-both" value="both">
+        <label for="d-both"><span class="shape"><i class="feed"></i><i class="story"></i></span><span><strong>Post e story</strong><br><small>Publica nos dois</small></span></label>
+      </div>
+    </section>
+
+    <!-- legenda -->
+    <section class="group" aria-labelledby="h-cap">
+      <h2 id="h-cap">Legenda</h2>
+      <p class="lead">Se você escrever algo junto com o link, esse texto vira a legenda. Senão, entra a legenda padrão. No Telegram: <b>/legenda</b> e <b>/hashtags</b>.</p>
+      <div class="field">
+        <label class="title" for="default_caption">Legenda padrão <span class="count" id="cap-count"></span></label>
+        <textarea id="default_caption" maxlength="2000" placeholder="Ex.: Marca quem precisa ver isso 😂"></textarea>
+      </div>
+      <div class="field">
+        <label class="title" for="hashtags">Hashtags fixas</label>
+        <input type="text" id="hashtags" maxlength="2000" placeholder="#memes #humor #br">
+        <p class="hint">Entram no final de toda legenda, inclusive quando você escreve uma.</p>
+      </div>
+      <div class="switch-row">
+        <div class="text"><strong>Usar a legenda original quando eu não escrever nada</strong><span>Copia o texto do post do TikTok, Instagram ou X no lugar da legenda padrão.</span></div>
+        <label class="switch"><input type="checkbox" id="keep_original_caption" aria-label="Usar a legenda original"><span></span></label>
+      </div>
+    </section>
+
+    <!-- comportamento -->
+    <section class="group" aria-labelledby="h-beh">
+      <h2 id="h-beh">Funcionamento</h2>
+      <p class="lead">Como o bot reage quando recebe um link.</p>
+      <div class="switch-row">
+        <div class="text"><strong>Mostrar prévia e perguntar antes de publicar</strong><span>O bot manda o meme no Telegram com os botões Post, Story, Post + story e Cancelar.</span></div>
+        <label class="switch"><input type="checkbox" id="confirm_before_post" aria-label="Mostrar prévia antes de publicar"><span></span></label>
+      </div>
+      <div class="switch-row">
+        <div class="text"><strong>Não repostar o mesmo link</strong><span>Avisa quando um link já foi publicado e não posta de novo.</span></div>
+        <label class="switch"><input type="checkbox" id="skip_duplicates" aria-label="Não repostar o mesmo link"><span></span></label>
+      </div>
+      <div class="switch-row">
+        <div class="text">
+          <strong>Cor das bordas</strong>
+          <span>Memes muito altos ou largos ganham bordas em vez de serem cortados. Stories também usam essa cor.</span>
+        </div>
+        <div class="inline"><input type="color" id="pad_color" aria-label="Cor das bordas"></div>
+      </div>
+      <div class="switch-row">
+        <div class="text"><strong>Máximo de imagens no carrossel</strong><span>Posts com mais itens que isso perdem os últimos. O Instagram aceita até 10.</span></div>
+        <div class="inline"><input type="number" id="max_carousel_items" min="1" max="10" aria-label="Máximo de imagens no carrossel"></div>
+      </div>
+    </section>
+
+    <!-- conta -->
+    <section class="group" aria-labelledby="h-acc">
+      <h2 id="h-acc">Conta do Instagram</h2>
+      <p class="lead">A conta precisa ser profissional (criador ou empresa). O token é renovado sozinho antes de vencer.</p>
+      <div id="acc-box"></div>
+      <div class="field">
+        <label class="title" for="ig-token" id="token-label">Token de acesso</label>
+        <div class="inline">
+          <input type="password" id="ig-token" placeholder="Cole o token gerado no painel da Meta" autocomplete="off" style="flex:1;min-width:220px">
+          <button class="btn primary" id="token-btn" type="button">Conectar</button>
+        </div>
+        <details>
+          <summary>Como gerar o token</summary>
+          <ol>
+            <li>Abra <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a> e crie um app.</li>
+            <li>Escolha o caso de uso de Instagram (gerenciar conteúdo e mensagens).</li>
+            <li>Em <i>Configuração da API com login da empresa do Instagram</i>, adicione a conta e clique em <i>Gerar token</i>.</li>
+            <li>Cole o token aqui e clique em Conectar.</li>
+          </ol>
+        </details>
+      </div>
+    </section>
+
+    <!-- cookies -->
+    <section class="group" aria-labelledby="h-ck">
+      <h2 id="h-ck">Acesso para baixar</h2>
+      <p class="lead">O Instagram só deixa baixar com uma conta logada. Use os cookies de uma conta secundária, não da conta que publica.</p>
+      <div id="ck-box"></div>
+      <div class="field">
+        <span class="title">Enviar cookies.txt</span>
+        <div class="inline">
+          <label class="btn" for="ck-file" style="display:inline-block">Escolher arquivo</label>
+          <input type="file" id="ck-file" accept=".txt,text/plain" class="hidden">
+          <button class="btn quiet" id="ck-remove" type="button">Remover cookies</button>
+        </div>
+        <p class="hint">Exporte com a extensão <b>Get cookies.txt LOCALLY</b> logado no instagram.com. Para fotos do X, junte os cookies do x.com no mesmo arquivo.</p>
+      </div>
+    </section>
+
+    <!-- acesso -->
+    <section class="group" aria-labelledby="h-who">
+      <h2 id="h-who">Quem pode usar o bot</h2>
+      <p class="lead">Só esses IDs do Telegram conseguem mandar posts. Quem não está na lista recebe o próprio ID ao mandar /start<span id="bot-handle"></span>.</p>
+      <div class="field">
+        <label class="title" for="allowed_user_ids">IDs do Telegram</label>
+        <input type="text" id="allowed_user_ids" inputmode="numeric" placeholder="Ex.: 123456789, 987654321">
+      </div>
+    </section>
+  </div>
+
+  <!-- prévia -->
+  <aside class="aside preview" aria-labelledby="h-prev">
+    <h2 id="h-prev">Como vai sair</h2>
+    <div class="frames" id="frames">
+      <div class="frame feed-frame" id="feed-frame">
+        <div class="bar"><img class="mini" id="pv-avatar" alt=""><span id="pv-user">sua conta</span></div>
+        <div class="media" id="pv-media-feed"></div>
+        <div class="caption" id="pv-caption"></div>
+      </div>
+      <div class="frame story-frame" id="story-frame">
+        <div class="media" id="pv-media-story"></div>
+      </div>
+    </div>
+    <p class="note" id="pv-note"></p>
+  </aside>
+</main>
+
+<section class="history" aria-labelledby="h-hist">
+  <div class="history-head"><h2 id="h-hist">Últimos envios</h2><span id="hist-sum"></span></div>
+  <div class="wall" id="wall"></div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null;
+let lastThumb = null;
+
+// ------------------------------------------------ rede
+async function api(path, body) {
+  const opt = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  };
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `erro ${r.status}`);
+  return data;
+}
+
+function toast(msg, bad = false) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.toggle("bad", bad);
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), bad ? 5000 : 2200);
+}
+
+function markSaved() {
+  const now = new Date();
+  $("saved").textContent = `Salvo às ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+async function save(changes) {
+  $("saved").textContent = "Salvando…";
+  try {
+    const { settings } = await api("/api/settings", changes);
+    state.settings = settings;
+    markSaved();
+    renderPreview();
+    renderTop();
+  } catch (e) {
+    $("saved").textContent = "";
+    toast(e.message, true);
+    fillSettings(state.settings);
+  }
+}
+
+const debounced = {};
+function saveLater(key, value, ms = 700) {
+  clearTimeout(debounced[key]);
+  $("saved").textContent = "Editando…";
+  debounced[key] = setTimeout(() => save({ [key]: value }), ms);
+}
+
+// ------------------------------------------------ helpers
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const PLATFORM = { tiktok: "TikTok", instagram: "Instagram", x: "X", telegram: "Arquivo do Telegram" };
+const DEST = { feed: "post", story: "story", both: "post e story" };
+
+function ago(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 60) return "agora";
+  if (s < 3600) return `há ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
+function uptime(sec) {
+  if (sec < 3600) return `${Math.max(1, Math.floor(sec / 60))} min`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)} h`;
+  return `${Math.floor(sec / 86400)} dias`;
+}
+
+// ------------------------------------------------ render
+function fillSettings(s) {
+  const active = document.activeElement?.id;
+  document.querySelectorAll('input[name=destination]').forEach((r) => (r.checked = r.value === s.destination));
+  for (const k of ["keep_original_caption", "confirm_before_post", "skip_duplicates"]) $(k).checked = !!s[k];
+  if (active !== "default_caption") $("default_caption").value = s.default_caption || "";
+  if (active !== "hashtags") $("hashtags").value = s.hashtags || "";
+  if (active !== "allowed_user_ids") $("allowed_user_ids").value = (s.allowed_user_ids || []).join(", ");
+  if (active !== "max_carousel_items") $("max_carousel_items").value = s.max_carousel_items;
+  $("pad_color").value = s.pad_color || "#000000";
+  $("cap-count").textContent = `${($("default_caption").value || "").length}/2000`;
+}
+
+function renderTop() {
+  const s = state.settings, b = state.bot, ig = state.instagram;
+  const off = state._offline;
+  $("state-dot").className = "dot" + (off ? " off" : s.paused ? " paused" : "");
+  $("state-text").textContent = off ? "Fora do ar" : s.paused ? "Pausado" : b.current ? `Ativo, ${b.current}` : "Ativo";
+  $("pause-btn").textContent = s.paused ? "Retomar" : "Pausar";
+  const parts = [];
+  if (ig.connected && ig.username) parts.push(`<strong>@${esc(ig.username)}</strong>`);
+  if (ig.quota && ig.quota.total) parts.push(`${ig.quota.used ?? 0} de ${ig.quota.total} posts nas últimas 24h`);
+  parts.push(`${state.today.ok} hoje`);
+  if (b.queue || b.pending) parts.push(`${b.queue} na fila, ${b.pending} esperando você`);
+  parts.push(`no ar há ${uptime(b.uptime)}`);
+  $("top-meta").innerHTML = parts.join(", ");
+  $("bot-handle").innerHTML = b.username ? ` para <b>@${esc(b.username)}</b>` : "";
+}
+
+function renderAccount() {
+  const ig = state.instagram;
+  const box = $("acc-box");
+  if (!ig.connected) {
+    box.innerHTML = `<div class="notice">Nenhuma conta conectada. Os links vão falhar até você colar um token abaixo.</div>`;
+    $("token-label").textContent = "Token de acesso";
+    $("token-btn").textContent = "Conectar";
+    return;
+  }
+  if (ig.error) {
+    box.innerHTML = `<div class="notice bad"><b>O Instagram recusou o token.</b><br>${esc(ig.error)}<br>Gere um token novo e cole abaixo.</div>`;
+    $("token-label").textContent = "Token novo";
+    $("token-btn").textContent = "Trocar token";
+    return;
+  }
+  const q = ig.quota || {};
+  const pct = q.total ? Math.min(100, Math.round(((q.used || 0) / q.total) * 100)) : 0;
+  const t = ig.token || {};
+  const type = { BUSINESS: "Conta comercial", MEDIA_CREATOR: "Conta de criador" }[ig.account_type] || "Conta profissional";
+  box.innerHTML = `
+    <div class="account">
+      ${ig.picture ? `<img class="avatar" src="${esc(ig.picture)}" alt="">` : `<div class="avatar"></div>`}
+      <div class="who">
+        <strong>@${esc(ig.username)}</strong>
+        <span>${type}. Token vale por mais ${t.days_left ?? "?"} dias.</span>
+        ${q.total ? `<div class="meter" title="${q.used} de ${q.total} posts nas últimas 24h"><b style="width:${pct}%"></b></div>` : ""}
+      </div>
+      <button class="btn" id="refresh-btn" type="button">Renovar token</button>
+    </div>`;
+  $("refresh-btn").onclick = async (ev) => {
+    ev.target.disabled = true;
+    try { const r = await api("/api/instagram/refresh", {}); state.instagram = r.instagram; renderAccount(); toast("Token renovado"); }
+    catch (e) { toast(e.message, true); ev.target.disabled = false; }
+  };
+  $("token-label").textContent = "Trocar de conta ou token";
+  $("token-btn").textContent = "Trocar token";
+}
+
+function renderCookies() {
+  const c = state.cookies;
+  const box = $("ck-box");
+  if (!c.source) {
+    box.innerHTML = `<div class="notice">Sem cookies. TikTok e vídeos do X funcionam; links do Instagram vão falhar.</div>`;
+    $("ck-remove").classList.add("hidden");
+    return;
+  }
+  const hasIg = c.domains.some((d) => d.includes("instagram"));
+  const when = c.updated_at ? new Date(c.updated_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  box.innerHTML = `<p class="hint" style="margin:0 0 12px">Cookies de <b>${esc(c.domains.join(", ") || "nenhum site")}</b>, enviados em ${esc(when)}${c.source === "env" ? " (definidos no .env)" : ""}.${hasIg ? "" : " <b>Não tem cookies do Instagram</b>, então links de lá vão falhar."}</p>`;
+  $("ck-remove").classList.toggle("hidden", c.source !== "painel");
+}
+
+function captionHTML() {
+  const s = state.settings;
+  let body = (s.default_caption || "").trim();
+  let html = "";
+  if (!body && s.keep_original_caption) html = `<span class="muted">legenda original do post</span>`;
+  else if (body) html = esc(body);
+  else html = `<span class="muted">sem legenda (escreva algo junto com o link para ter uma)</span>`;
+  const tags = (s.hashtags || "").trim();
+  if (tags) html += `\n\n<span class="tag">${esc(tags)}</span>`;
+  const user = state.instagram.username ? esc(state.instagram.username) : "sua conta";
+  return `<b>${user}</b> ${html}`;
+}
+
+function renderPreview() {
+  const s = state.settings;
+  const dest = s.destination;
+  $("feed-frame").classList.toggle("hidden", dest === "story");
+  $("story-frame").classList.toggle("hidden", dest === "feed");
+  $("frames").classList.toggle("both", dest === "both");
+  $("pv-caption").innerHTML = captionHTML();
+  $("pv-user").textContent = state.instagram.username || "sua conta";
+  const av = $("pv-avatar");
+  if (state.instagram.picture) { av.src = state.instagram.picture; av.classList.remove("hidden"); } else av.classList.add("hidden");
+
+  const bg = s.pad_color || "#000000";
+  for (const id of ["pv-media-feed", "pv-media-story"]) {
+    const m = $(id);
+    m.style.background = bg;
+    m.innerHTML = lastThumb ? `<img src="/thumbs/${encodeURIComponent(lastThumb)}" alt="Último meme publicado">`
+                            : `<span class="empty">O próximo meme aparece aqui</span>`;
+  }
+  const notes = {
+    feed: "Foto vira post, vídeo vira reel, vários itens viram carrossel.",
+    story: "Cada imagem ou vídeo vira uma story. Stories não têm legenda; vídeos acima de 60 s são cortados.",
+    both: "Publica o post com legenda e depois a story. Se a story falhar, o post continua no ar.",
+  };
+  $("pv-note").innerHTML = (s.confirm_before_post ? `<span class="marker">Com a prévia ligada, você escolhe na hora pelo Telegram.</span> ` : "") + notes[dest];
+}
+
+function renderHistory(entries) {
+  const wall = $("wall");
+  const ok = entries.filter((e) => e.status === "ok").length;
+  $("hist-sum").textContent = entries.length ? `${ok} publicados, ${entries.length - ok} com erro` : "";
+  const first = entries.find((e) => e.status === "ok" && e.thumb);
+  const newThumb = first ? first.thumb : null;
+  if (newThumb !== lastThumb) { lastThumb = newThumb; if (state) renderPreview(); }
+  if (!entries.length) {
+    wall.innerHTML = `<p class="empty-wall">Nada por aqui ainda. Compartilhe um link com o bot no Telegram e ele aparece aqui.</p>`;
+    return;
+  }
+  wall.innerHTML = entries.map((e) => {
+    const fail = e.status !== "ok";
+    const pic = e.thumb ? `<img src="/thumbs/${encodeURIComponent(e.thumb)}" alt="">` : "";
+    const badge = fail ? "Erro" : (e.kind || DEST[e.destination] || "");
+    const what = `${PLATFORM[e.platform] || e.platform}`;
+    const link = e.permalink ? `<a href="${esc(e.permalink)}" target="_blank" rel="noopener">Abrir no Instagram</a>`
+               : (e.source_url ? `<a href="${esc(e.source_url)}" target="_blank" rel="noopener">Ver original</a>` : "");
+    return `<article class="post ${fail ? "fail" : ""}">
+      <div class="pic">${pic}<span class="badge">${esc(badge)}</span></div>
+      <span class="where">${esc(what)}</span>
+      <span class="when">${ago(e.at)}</span>
+      ${fail ? `<span class="err" title="${esc(e.error)}">${esc(e.error)}</span>` : ""}
+      ${link}
+    </article>`;
+  }).join("");
+}
+
+// ------------------------------------------------ ciclo
+async function refresh(fresh = false) {
+  try {
+    const data = await api("/api/status" + (fresh ? "?fresh=1" : ""));
+    const first = !state;
+    state = data;
+    state._offline = false;
+    $("offline").classList.add("hidden");
+    if (first) fillSettings(state.settings);
+    else {  // não atropela o que o usuário está editando
+      const ae = document.activeElement?.id;
+      if (!["default_caption", "hashtags", "allowed_user_ids", "max_carousel_items"].includes(ae)) fillSettings(state.settings);
+    }
+    renderTop(); renderAccount(); renderCookies(); renderPreview();
+  } catch (e) {
+    if (state) { state._offline = true; renderTop(); }
+    $("offline").classList.remove("hidden");
+  }
+}
+
+async function refreshHistory() {
+  try { renderHistory((await api("/api/history?limit=60")).entries); } catch (e) { /* offline */ }
+}
+
+// ------------------------------------------------ eventos
+document.querySelectorAll('input[name=destination]').forEach((r) =>
+  r.addEventListener("change", () => save({ destination: r.value })));
+for (const k of ["keep_original_caption", "confirm_before_post", "skip_duplicates"])
+  $(k).addEventListener("change", (e) => save({ [k]: e.target.checked }));
+$("default_caption").addEventListener("input", (e) => {
+  $("cap-count").textContent = `${e.target.value.length}/2000`;
+  state.settings.default_caption = e.target.value; renderPreview();
+  saveLater("default_caption", e.target.value);
+});
+$("hashtags").addEventListener("input", (e) => {
+  state.settings.hashtags = e.target.value; renderPreview();
+  saveLater("hashtags", e.target.value);
+});
+$("pad_color").addEventListener("input", (e) => { state.settings.pad_color = e.target.value; renderPreview(); });
+$("pad_color").addEventListener("change", (e) => save({ pad_color: e.target.value }));
+$("max_carousel_items").addEventListener("change", (e) => save({ max_carousel_items: e.target.value }));
+$("allowed_user_ids").addEventListener("change", (e) => save({ allowed_user_ids: e.target.value }));
+$("pause-btn").addEventListener("click", () => save({ paused: !state.settings.paused }).then(() =>
+  toast(state.settings.paused ? "Pausado: links recebidos serão ignorados" : "Publicação retomada")));
+
+$("token-btn").addEventListener("click", async (ev) => {
+  const token = $("ig-token").value.trim();
+  if (!token) { $("ig-token").focus(); toast("Cole o token primeiro", true); return; }
+  ev.target.disabled = true; ev.target.textContent = "Conferindo…";
+  try {
+    const r = await api("/api/instagram/token", { token });
+    state.instagram = r.instagram; $("ig-token").value = "";
+    renderAccount(); renderTop(); renderPreview();
+    toast(`Conectado como @${r.instagram.username}`);
+  } catch (e) { toast(e.message, true); renderAccount(); }
+  finally { ev.target.disabled = false; }
+});
+$("ig-token").addEventListener("keydown", (e) => { if (e.key === "Enter") $("token-btn").click(); });
+
+$("ck-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const r = await api("/api/cookies", { content: await file.text() });
+    state.cookies = r.cookies; renderCookies(); toast("Cookies salvos");
+  } catch (err) { toast(err.message, true); }
+  e.target.value = "";
+});
+$("ck-remove").addEventListener("click", async () => {
+  try { const r = await api("/api/cookies", { content: "" }); state.cookies = r.cookies; renderCookies(); toast("Cookies removidos"); }
+  catch (err) { toast(err.message, true); }
+});
+
+refresh(true).then(refreshHistory);
+setInterval(refresh, 5000);
+setInterval(refreshHistory, 15000);
+</script>
+</body>
+</html>
